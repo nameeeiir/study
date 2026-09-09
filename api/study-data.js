@@ -1,18 +1,28 @@
-import { Redis } from '@upstash/redis';
-
-// Connects to Upstash Redis using environment variables automatically set by Vercel
-const redis = Redis.fromEnv();
-
 export default async function handler(req, res) {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   const KEY = 'studyWarsData';
 
+  if (!url || !token) {
+    return res.status(500).json({ error: 'Upstash environment variables not connected.' });
+  }
+
   if (req.method === 'GET') {
-    const data = await redis.get(KEY);
-    return res.status(200).json(data || { you: 0, friend: 0, history: [], days: {} });
+    const response = await fetch(`${url}/get/${KEY}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const result = await response.json();
+    const data = result.result ? JSON.parse(result.result) : { you: 0, friend: 0, history: [], days: {} };
+    return res.status(200).json(data);
   }
 
   if (req.method === 'POST') {
-    await redis.set(KEY, req.body);
+    const bodyStr = JSON.stringify(req.body);
+    await fetch(`${url}/set/${KEY}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(bodyStr)
+    });
     return res.status(200).json({ success: true });
   }
 
