@@ -70,7 +70,7 @@ select{
       <div class="time" id="timer">00:00:00</div>
       <button id="start">Start studying</button>
       <button id="reset" class="secondary">Reset session</button>
-      <!-- Added Clear Backend Button -->
+      <button id="addTime" class="secondary">Add manual time</button>
       <button id="clearBackend" class="secondary danger">Clear all data</button>
     </div>
   </div>
@@ -195,7 +195,21 @@ $("start").onclick = async () => {
 
 $("reset").onclick=()=>{if(!running){elapsed=0;render()}};
 
-// Added Clear Backend Event Listener
+$("addTime").onclick = async () => {
+  if(!running){
+    let input = prompt("Enter minutes to add:");
+    let mins = parseInt(input, 10);
+    if(!isNaN(mins) && mins > 0){
+      let secs = mins * 60;
+      data[current] += secs;
+      data.history.push({player: current, seconds: secs, date: new Date().toLocaleString() + " (Manual)"});
+      data.days[dayKey()] = true;
+      await save();
+      render();
+    }
+  }
+};
+
 $("clearBackend").onclick = async () => {
   if(!running && confirm("Are you sure you want to clear all progress and history?")){
     data = { you: 0, friend: 0, history: [], days: {} };
