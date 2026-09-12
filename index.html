@@ -70,6 +70,8 @@ select{
       <div class="time" id="timer">00:00:00</div>
       <button id="start">Start studying</button>
       <button id="reset" class="secondary">Reset session</button>
+      <!-- Added Clear Backend Button -->
+      <button id="clearBackend" class="secondary danger">Clear all data</button>
     </div>
   </div>
 
@@ -193,7 +195,18 @@ $("start").onclick = async () => {
 
 $("reset").onclick=()=>{if(!running){elapsed=0;render()}};
 
+// Added Clear Backend Event Listener
+$("clearBackend").onclick = async () => {
+  if(!running && confirm("Are you sure you want to clear all progress and history?")){
+    data = { you: 0, friend: 0, history: [], days: {} };
+    await save();
+    elapsed = 0;
+    render();
+  }
+};
+
 loadData();
 </script>
 </body>
 </html>
+```[cite: 1, 2]
