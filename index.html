@@ -31,11 +31,11 @@ button{
 }
 button.secondary{background:rgba(255,255,255,.1);color:#fff}
 button.danger{background:#ff5f6d;color:white}
-.players{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
-.player{padding:20px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.players{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.player{padding:16px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
 .player.active{outline:2px solid rgba(255,255,255,.5)}
 .name{font-weight:800;font-size:18px}
-.total{font-size:34px;font-weight:800;margin-top:10px}
+.total{font-size:28px;font-weight:800;margin-top:10px}
 .bar{height:8px;background:rgba(255,255,255,.09);border-radius:10px;overflow:hidden;margin-top:12px}
 .fill{height:100%;background:#fff;border-radius:10px;width:0%}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
@@ -59,6 +59,7 @@ select{
   <select id="playerSelect">
     <option value="you">N</option>
     <option value="friend">Z</option>
+    <option value="m">M</option>
   </select>
 </header>
 
@@ -88,6 +89,11 @@ select{
         <div class="total" id="friendTotal">0m</div>
         <div class="bar"><div class="fill" id="friendBar"></div></div>
       </div>
+      <div class="player" id="mCard">
+        <div class="name">M</div>
+        <div class="total" id="mTotal">0m</div>
+        <div class="bar"><div class="fill" id="mBar"></div></div>
+      </div>
     </div>
     <p id="lead" class="sub" style="margin:18px 0 0"></p>
   </div>
@@ -104,7 +110,7 @@ select{
 </div>
 
 <script>
-let data = { you: 0, friend: 0, history: [], days: {} };
+let data = { you: 0, friend: 0, m: 0, history: [], days: {} };
 let current = "you", running = false, startTime = 0, elapsed = 0, interval = null;
 
 const $ = id => document.getElementById(id);
@@ -113,7 +119,8 @@ async function loadData() {
   try {
     const res = await fetch('/api/study-data');
     if (res.ok) {
-      data = await res.json();
+      let loaded = await res.json();
+      data = { you: 0, friend: 0, m: 0, ...loaded };
     }
   } catch (err) {
     console.error("Failed to load cloud data:", err);
@@ -147,22 +154,40 @@ function render(){
   $("timer").textContent=fmt(elapsed);
   $("youTotal").textContent=short(data.you);
   $("friendTotal").textContent=short(data.friend);
-  let max=Math.max(data.you,data.friend,1);
+  $("mTotal").textContent=short(data.m);
+  
+  let max=Math.max(data.you,data.friend,data.m,1);
   $("youBar").style.width=(data.you/max*100)+"%";
   $("friendBar").style.width=(data.friend/max*100)+"%";
-  if(data.you===data.friend) $("lead").textContent="It's tied. 👀";
-  else {
-    let winner=data.you>data.friend?"N":"Z";
-    $("lead").textContent=`${winner} is leading by ${short(Math.abs(data.you-data.friend))}.`;
+  $("mBar").style.width=(data.m/max*100)+"%";
+
+  let scores = [
+    {k: 'you', n: 'N', s: data.you},
+    {k: 'friend', n: 'Z', s: data.friend},
+    {k: 'm', n: 'M', s: data.m}
+  ];
+  scores.sort((a,b)=>b.s-a.s);
+
+  if(scores[0].s === 0 && scores[1].s === 0 && scores[2].s === 0) {
+    $("lead").textContent = "No study time recorded yet. 👀";
+  } else if(scores[0].s === scores[1].s) {
+    $("lead").textContent = "It's tied at the top! 👀";
+  } else {
+    $("lead").textContent = `${scores[0].n} is leading by ${short(scores[0].s - scores[1].s)}.`;
   }
+
   $("today").textContent=short(data[current]);
   $("week").textContent=short(data[current]);
   $("streak").textContent=calcStreak()+" days";
+  
+  let playerNames = { you: "N", friend: "Z", m: "M" };
   $("history").innerHTML=data.history.length
-    ? data.history.slice().reverse().map(x=>`<div class="row"><span>${x.player==="you"?"N":"Z"} · ${x.date}</span><b>${short(x.seconds)}</b></div>`).join("")
+    ? data.history.slice().reverse().map(x=>`<div class="row"><span>${playerNames[x.player] || x.player} · ${x.date}</span><b>${short(x.seconds)}</b></div>`).join("")
     : "No sessions yet.";
+    
   $("youCard").classList.toggle("active",current==="you");
   $("friendCard").classList.toggle("active",current==="friend");
+  $("mCard").classList.toggle("active",current==="m");
 }
 
 function calcStreak(){
@@ -212,7 +237,7 @@ $("addTime").onclick = async () => {
 
 $("clearBackend").onclick = async () => {
   if(!running && confirm("Are you sure you want to clear all progress and history?")){
-    data = { you: 0, friend: 0, history: [], days: {} };
+    data = { you: 0, friend: 0, m: 0, history: [], days: {} };
     await save();
     elapsed = 0;
     render();
@@ -223,4 +248,4 @@ loadData();
 </script>
 </body>
 </html>
-```[cite: 1, 2]
+```[cite: 3]
